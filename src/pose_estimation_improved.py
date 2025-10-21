@@ -1,8 +1,3 @@
-"""
-Improved Pose Estimation from Accelerometer and Gyroscope
-Fixes issues in original implementation and adds enhancements
-"""
-
 import os
 import csv
 import math
@@ -93,8 +88,9 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
     """
     Basic complementary filter for pitch and roll estimation
 
-    FIXES from original:
-    - Corrected pitch/roll formulas (they were swapped!)
+    - Pitch/roll formulas from accelerometer:
+      pitch = atan2(-ax, sqrt(ay^2 + az^2))
+      roll  = atan2(ay, sqrt(ax^2 + az^2))
     - Uses variable dt (actual time differences)
     - Adds gyroscope bias correction
     - Optional accelerometer filtering
@@ -115,7 +111,6 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
     # Estimate sampling rate
     fs = 1.0 / np.median(np.diff(t))
 
-    # Optional: Correct gyroscope bias
     if correct_bias:
         bias_x, bias_y, bias_z = estimate_gyro_bias(gx, gy, gz)
         gx = gx - bias_x
@@ -123,7 +118,6 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
         gz = gz - bias_z
         print(f"Gyroscope bias removed: X={bias_x:.4f}, Y={bias_y:.4f}, Z={bias_z:.4f} rad/s")
 
-    # Optional: Filter accelerometer data to reduce noise
     if filter_accel:
         ax = low_pass_filter(ax, alpha=0.9)
         ay = low_pass_filter(ay, alpha=0.9)
@@ -132,7 +126,7 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
     # Initialize angles
     pitch = 0.0
     roll = 0.0
-    yaw = 0.0  # Yaw will drift without magnetometer
+    yaw = 0.0  
 
     # Storage for time series
     pitch_log = []
@@ -145,7 +139,6 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
 
     # Main filter loop
     for i in range(len(t)):
-        # Calculate dt (use actual time difference, not average)
         if i == 0:
             dt = 1.0 / fs  # First sample, use average
         else:
@@ -153,11 +146,11 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
 
         # === ACCELEROMETER-BASED ANGLES (FIXED FORMULAS!) ===
         # Pitch: rotation around Y-axis (forward/backward tilt)
-        # CORRECT formula: atan2(-ax, sqrt(ay^2 + az^2))
+        # formula: atan2(-ax, sqrt(ay^2 + az^2))
         pitch_acc = math.degrees(math.atan2(-ax[i], math.sqrt(ay[i]**2 + az[i]**2)))
 
         # Roll: rotation around X-axis (left/right tilt)
-        # CORRECT formula: atan2(ay, sqrt(ax^2 + az^2))
+        # formula: atan2(ay, sqrt(ax^2 + az^2))
         roll_acc = math.degrees(math.atan2(ay[i], math.sqrt(ax[i]**2 + az[i]**2)))
 
         # === GYROSCOPE INTEGRATION ===
@@ -171,7 +164,7 @@ def complementary_filter_basic(acc_path, gyro_path, alpha=0.98, filter_accel=Tru
         # Combine gyro (no noise, has drift) with accel (no drift, has noise)
         pitch = alpha * pitch_gyro + (1 - alpha) * pitch_acc
         roll = alpha * roll_gyro + (1 - alpha) * roll_acc
-        yaw = yaw_gyro  # Yaw has no correction (needs magnetometer)
+        yaw = yaw_gyro 
 
         # Log values
         pitch_log.append(pitch)
@@ -307,7 +300,7 @@ def save_pose_estimation_plot(acc_path, gyro_path, output_path, alpha=0.98):
     for i in range(len(t)):
         dt = (t[i] - t[i-1]) if i > 0 else (1.0 / fs)
 
-        # Accelerometer angles (CORRECTED formulas)
+        # Accelerometer angles
         pitch_acc = math.degrees(math.atan2(-ax_f[i], math.sqrt(ay_f[i]**2 + az_f[i]**2)))
         roll_acc = math.degrees(math.atan2(ay_f[i], math.sqrt(ax_f[i]**2 + az_f[i]**2)))
 
