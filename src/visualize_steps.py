@@ -3,6 +3,7 @@ Visualization script to verify step counting
 Shows the signal processing steps and detected peaks
 """
 
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ def visualize_step_detection(csv_path, output_path=None):
 
     # Create figure with subplots
     fig, axes = plt.subplots(4, 2, figsize=(16, 12))
-    fig.suptitle(f'Step Detection Analysis\n{csv_path.split("/")[-2]}',
+    fig.suptitle(f'Step Detection Analysis\n{os.path.basename(os.path.dirname(csv_path))}',
                  fontsize=14, fontweight='bold')
 
     t = timestamps - timestamps[0]  # Time from 0
@@ -172,7 +173,7 @@ def visualize_step_detection(csv_path, output_path=None):
 SUMMARY STATISTICS
 {'='*35}
 
-File: {csv_path.split('/')[-2]}
+File: {os.path.basename(os.path.dirname(csv_path))}
 Sampling Rate: {sampling_rate:.2f} Hz
 Duration: {duration:.2f} seconds
 Data Points: {len(df)}

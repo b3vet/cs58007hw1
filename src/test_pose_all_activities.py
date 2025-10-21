@@ -13,9 +13,15 @@ activities = [
     "walking_hand_2-2025-10-10_14-39-53"
 ]
 
-base_dir = "../data"
-output_dir = "../plots"
+os.makedirs(output_dir, exist_ok=True)
 
+# Import CSV config from main.py
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from main import CSV_CONFIG
+
+base_dir = CSV_CONFIG['base_data_dir']
+output_dir = CSV_CONFIG['base_output_dir']
 os.makedirs(output_dir, exist_ok=True)
 
 for activity in activities:
@@ -24,8 +30,8 @@ for activity in activities:
     print(f"Processing: {activity_name}")
     print(f"{'='*60}")
 
-    acc_path = os.path.join(base_dir, activity, "Accelerometer.csv")
-    gyro_path = os.path.join(base_dir, activity, "Gyroscope.csv")
+    acc_path = CSV_CONFIG['activity_csvs'][activity_name]['acc']
+    gyro_path = CSV_CONFIG['activity_csvs'][activity_name]['gyro']
     output_path = os.path.join(output_dir, f"{activity_name}_pose_estimation.png")
 
     try:

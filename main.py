@@ -1,3 +1,47 @@
+import os
+######################################################################
+# CENTRALIZED CSV CONFIGS
+#
+# Usage for each part:
+#   Part 1 (Activity Classification):
+#     - Uses only Accelerometer.csv for each activity (see 'acc' keys)
+#   Part 2 (Step Counting):
+#     - Uses Accelerometer.csv for walking activities (see 'acc' keys for walking_hand_1, walking_hand_2)
+#   Part 3 (Pose Estimation):
+#     - Uses both Accelerometer.csv and Gyroscope.csv for all activities (see both 'acc' and 'gyro' keys)
+#
+# To add or change datasets, update the paths below.
+######################################################################
+CSV_CONFIG = {
+    'base_data_dir': 'data',
+    'base_output_dir': 'plots',
+    # Directory names of recorded activities
+    'activities': [
+        "sitting_hand-2025-10-10_14-38-42",
+        "standing_hand-2025-10-10_14-38-03",
+        "walking_hand_1-2025-10-10_14-39-10",
+        "walking_hand_2-2025-10-10_14-39-53"
+    ],
+    # Mapping of activity names to their accelerometer and gyroscope CSV paths
+    'activity_csvs': {
+        'sitting_hand': {
+            'acc': os.path.join('data', "sitting_hand-2025-10-10_14-38-42", "Accelerometer.csv"),
+            'gyro': os.path.join('data', "sitting_hand-2025-10-10_14-38-42", "Gyroscope.csv")
+        },
+        'standing_hand': {
+            'acc': os.path.join('data', "standing_hand-2025-10-10_14-38-03", "Accelerometer.csv"),
+            'gyro': os.path.join('data', "standing_hand-2025-10-10_14-38-03", "Gyroscope.csv")
+        },
+        'walking_hand_1': {
+            'acc': os.path.join('data', "walking_hand_1-2025-10-10_14-39-10", "Accelerometer.csv"),
+            'gyro': os.path.join('data', "walking_hand_1-2025-10-10_14-39-10", "Gyroscope.csv")
+        },
+        'walking_hand_2': {
+            'acc': os.path.join('data', "walking_hand_2-2025-10-10_14-39-53", "Accelerometer.csv"),
+            'gyro': os.path.join('data', "walking_hand_2-2025-10-10_14-39-53", "Gyroscope.csv")
+        }
+    }
+}
 #!/usr/bin/env python3
 """
 Main entry point for Human Activity Recognition and Pose Estimation project
@@ -15,7 +59,6 @@ Usage:
   python main.py --activity walking_hand_1  # Run all parts on specific activity
 """
 
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -28,6 +71,7 @@ from datetime import datetime
 # Data directories
 DATA_DIR = "data"
 PLOTS_DIR = "plots"
+PLOTS_DIR2 = "plots2"
 
 # Available activities
 ACTIVITIES = [
@@ -71,6 +115,145 @@ def get_activity_paths(activity_name):
 # PART 1: ACTIVITY CLASSIFICATION
 # ============================================================================
 
+# --- Local helpers for Part 1 (numpy/pandas only; avoid importing src/detailed_analysis) ---
+def _read_accel_csv_simple(folder):
+    """Read Accelerometer.csv for given folder into a pandas DataFrame with accX/accY/accZ.
+
+    Expects Sensor Logger columns: seconds_elapsed, x, y, z.
+    """
+    import pandas as pd
+    path = os.path.join(DATA_DIR, folder, "Accelerometer.csv")
+    df = pd.read_csv(path)
+    if 'x' in df.columns:
+        df.rename(columns={'x': 'accX', 'y': 'accY', 'z': 'accZ'}, inplace=True)
+    required = {'seconds_elapsed', 'accX', 'accY', 'accZ'}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns in {path}: {sorted(missing)}")
+    return df
+
+
+def _estimate_sampling_rate_from_seconds(t_series):
+    import numpy as np
+    t = t_series.values.astype(float)
+    if len(t) < 2:
+        return 100.0
+    dt = np.diff(t)
+    dt = dt[dt > 0]
+    if dt.size == 0:
+        return 100.0
+    median_dt = np.median(dt)
+    return 1.0 / median_dt if median_dt > 0 else 100.0
+
+
+def _compute_detailed_features_simple(df, activity_name):
+    """Compute distinguishing features using only numpy/pandas (no scipy).
+
+    Returns a dict with keys similar to the original implementation.
+    """
+    import numpy as np
+
+    t = df['seconds_elapsed'].to_numpy(dtype=float)
+    ax = df['accX'].to_numpy(dtype=float)
+    ay = df['accY'].to_numpy(dtype=float)
+    az = df['accZ'].to_numpy(dtype=float)
+
+    n = min(len(t), len(ax), len(ay), len(az))
+    if n == 0:
+        return {
+            'Activity': activity_name,
+            'Mag_Mean': 0.0, 'Mag_Std': 0.0, 'Mag_Range': 0.0,
+            'Dominant_Freq': 0.0, 'Total_Energy': 0.0, 'Mag_Peaks': 0,
+            'X_Mean': 0.0, 'X_Std': 0.0, 'Y_Mean': 0.0, 'Y_Std': 0.0, 'Z_Mean': 0.0, 'Z_Std': 0.0
+        }
+
+    t = t[:n]; ax = ax[:n]; ay = ay[:n]; az = az[:n]
+
+    # Magnitude and basic stats
+    mag = np.sqrt(ax*ax + ay*ay + az*az)
+    mag_mean = float(np.mean(mag))
+    mag_std = float(np.std(mag))
+    mag_min = float(np.min(mag))
+    mag_max = float(np.max(mag))
+    mag_range = mag_max - mag_min
+
+    # Axis stats
+    x_mean = float(np.mean(ax)); x_std = float(np.std(ax))
+    y_mean = float(np.mean(ay)); y_std = float(np.std(ay))
+    z_mean = float(np.mean(az)); z_std = float(np.std(az))
+
+    # Sampling rate
+    fs = _estimate_sampling_rate_from_seconds(df['seconds_elapsed'])
+
+    # Dominant frequency via numpy FFT (exclude DC)
+    dominant_freq = 0.0
+    if n > 8 and fs > 0:
+        sig = mag - np.mean(mag)
+        yf = np.fft.rfft(sig)
+        xf = np.fft.rfftfreq(sig.size, d=1.0/fs)
+        power = np.abs(yf)
+        if power.size > 1:
+            idx = int(np.argmax(power[1:]) + 1)
+            dominant_freq = float(xf[idx])
+
+    # Energy (mean squared magnitude)
+    total_energy = float(np.mean(mag*mag)) if n > 0 else 0.0
+
+    # Simple peak count on lightly smoothed magnitude (box filter ~50 ms)
+    win = max(3, int(max(1.0/fs, 0.05) * fs))  # ~50 ms window
+    kernel = np.ones(win) / win
+    mag_smooth = np.convolve(mag, kernel, mode='same') if win > 1 else mag
+
+    thr = mag_mean + 0.3 * mag_std
+    peaks_bool = (mag_smooth[1:-1] > mag_smooth[:-2]) & (mag_smooth[1:-1] > mag_smooth[2:]) & (mag_smooth[1:-1] >= thr)
+    peak_indices = np.where(peaks_bool)[0] + 1
+    # Enforce min distance ~0.3 s
+    min_dist = max(1, int(0.3 * fs))
+    dedup = []
+    for idx in peak_indices:
+        if not dedup or (idx - dedup[-1]) >= min_dist:
+            dedup.append(idx)
+        else:
+            if mag_smooth[idx] > mag_smooth[dedup[-1]]:
+                dedup[-1] = idx
+    mag_peaks = int(len(dedup))
+
+    return {
+        'Activity': activity_name,
+        'Mag_Mean': mag_mean,
+        'Mag_Std': mag_std,
+        'Mag_Min': mag_min,
+        'Mag_Max': mag_max,
+        'Mag_Range': mag_range,
+        'Dominant_Freq': dominant_freq,
+        'Total_Energy': total_energy,
+        'Mag_Peaks': mag_peaks,
+        'X_Mean': x_mean, 'X_Std': x_std,
+        'Y_Mean': y_mean, 'Y_Std': y_std,
+        'Z_Mean': z_mean, 'Z_Std': z_std
+    }
+
+
+def _save_text_report(output_dir, activity_name, features):
+    """Save a simple text summary instead of PNG plots (matplotlib-free path)."""
+    os.makedirs(output_dir, exist_ok=True)
+    out_path = os.path.join(output_dir, f"{activity_name}_detailed.txt")
+    lines = [
+        f"Activity: {features.get('Activity', activity_name)}",
+        f"Mag Mean: {features['Mag_Mean']:.3f} m/s^2",
+        f"Mag Std: {features['Mag_Std']:.3f} m/s^2",
+        f"Mag Range: {features['Mag_Range']:.3f} m/s^2",
+        f"Dominant Freq: {features['Dominant_Freq']:.3f} Hz",
+        f"Total Energy: {features['Total_Energy']:.3f}",
+        f"Peak Count: {features['Mag_Peaks']}",
+        f"X mean±std: {features['X_Mean']:.3f} ± {features['X_Std']:.3f}",
+        f"Y mean±std: {features['Y_Mean']:.3f} ± {features['Y_Std']:.3f}",
+        f"Z mean±std: {features['Z_Mean']:.3f} ± {features['Z_Std']:.3f}",
+    ]
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"Saved text report: {out_path}")
+
 def run_part1(activities=None, save_plots=True):
     """
     Part 1: Activity Classification and Feature Analysis
@@ -81,13 +264,6 @@ def run_part1(activities=None, save_plots=True):
     print_banner("PART 1: ACTIVITY CLASSIFICATION & FEATURE ANALYSIS")
 
     try:
-        import sys
-        sys.path.insert(0, 'src')
-        from detailed_analysis import (
-            read_accel_csv,
-            compute_detailed_features,
-            create_detailed_plots
-        )
         import pandas as pd
 
         if activities is None:
@@ -103,20 +279,18 @@ def run_part1(activities=None, save_plots=True):
 
             try:
                 # Read data
-                df = read_accel_csv(activity)
+                df = _read_accel_csv_simple(activity)
 
                 print(f"Data points: {len(df)}")
                 print(f"Duration: {df['seconds_elapsed'].max():.2f} seconds")
 
                 # Compute features
-                features = compute_detailed_features(df, activity_name.title())
+                features = _compute_detailed_features_simple(df, activity_name.title())
                 all_features.append(features)
 
                 # Create plots if requested
                 if save_plots:
-                    os.makedirs(PLOTS_DIR, exist_ok=True)
-                    output_file = os.path.join(PLOTS_DIR, f"{activity_name}_detailed.png")
-                    create_detailed_plots(df, activity_name, PLOTS_DIR)
+                    _save_text_report(PLOTS_DIR2, activity_name, features)
 
                 # Print key features
                 print(f"\nKey Features:")
@@ -142,7 +316,7 @@ def run_part1(activities=None, save_plots=True):
             print(features_df[key_features].to_string(index=False))
 
             # Save feature table
-            output_csv = os.path.join(PLOTS_DIR, "feature_comparison.csv")
+            output_csv = os.path.join(PLOTS_DIR2, "feature_comparison.csv")
             features_df.to_csv(output_csv, index=False)
             print(f"\n✓ Feature table saved to: {output_csv}")
 

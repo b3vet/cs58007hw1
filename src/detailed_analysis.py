@@ -2,8 +2,72 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
-from scipy.fft import fft, fftfreq
+
+# Local implementations to avoid scipy dependency
+
+def find_peaks_simple(signal, height=None):
+    """
+    Simple peak detection without scipy
+    Returns indices where signal[i-1] < signal[i] > signal[i+1]
+    """
+    peaks = []
+    for i in range(1, len(signal) - 1):
+        if signal[i] > signal[i-1] and signal[i] > signal[i+1]:
+            if height is None or signal[i] >= height:
+                peaks.append(i)
+    return peaks
+
+
+def dft_manual(signal):
+    """
+    Manual Discrete Fourier Transform implementation (no FFT libraries)
+    
+    DFT formula: X[k] = Σ(n=0 to N-1) x[n] * e^(-2πi*k*n/N)
+    
+    Note: This is O(N²) complexity, slower than FFT's O(N log N)
+    For real-world use, FFT is preferred, but this shows the math
+    """
+    N = len(signal)
+    result = np.zeros(N, dtype=complex)
+    
+    for k in range(N):
+        for n in range(N):
+            angle = -2j * np.pi * k * n / N
+            result[k] += signal[n] * np.exp(angle)
+    
+    return result
+
+
+def fft_numpy(signal):
+    """
+    DFT implementation without using np.fft
+    Uses manual DFT calculation for complete independence
+    """
+    return dft_manual(signal)
+
+
+def fftfreq_manual(n, d=1.0):
+    """
+    Manual frequency bin calculation (no numpy.fft.fftfreq)
+    
+    Returns the frequency bins for a DFT/FFT output
+    f[k] = k / (n * d) for k = 0, 1, ..., n/2-1 (positive frequencies)
+    f[k] = (k - n) / (n * d) for k = n/2, ..., n-1 (negative frequencies)
+    """
+    freq = np.zeros(n)
+    for k in range(n):
+        if k < n // 2:
+            freq[k] = k / (n * d)
+        else:
+            freq[k] = (k - n) / (n * d)
+    return freq
+
+
+def fftfreq_numpy(n, d=1.0):
+    """
+    FFT frequency bins - manual implementation
+    """
+    return fftfreq_manual(n, d)
 
 # Folder where all logs are stored
 ROOT = "../data"
@@ -58,7 +122,7 @@ def compute_detailed_features(df, activity_name):
         "Z_ZCR": ((df["accZ"][:-1] * df["accZ"][1:]) < 0).sum() / len(df),
 
         # Peak detection (periodic motion indicator)
-        "Mag_Peaks": len(signal.find_peaks(mag, height=mag.mean())[0]),
+        "Mag_Peaks": len(find_peaks_simple(mag, height=mag.mean())),
 
         # Signal energy
         "X_Energy": (df["accX"]**2).sum() / len(df),
@@ -73,8 +137,8 @@ def compute_detailed_features(df, activity_name):
         n = len(mag)
 
         # FFT for magnitude
-        yf = fft(mag - mag.mean())
-        xf = fftfreq(n, 1/sampling_rate)[:n//2]
+        yf = fft_numpy(mag - mag.mean())
+        xf = fftfreq_numpy(n, 1/sampling_rate)[:n//2]
         power = 2.0/n * np.abs(yf[:n//2])
 
         # Find dominant frequency
@@ -142,8 +206,8 @@ def create_detailed_plots(df, activity_name, output_dir):
     try:
         sampling_rate = 1.0 / df["seconds_elapsed"].diff().mean()
         n = len(mag)
-        yf = fft(mag - mag.mean())
-        xf = fftfreq(n, 1/sampling_rate)[:n//2]
+        yf = fft_numpy(mag - mag.mean())
+        xf = fftfreq_numpy(n, 1/sampling_rate)[:n//2]
         power = 2.0/n * np.abs(yf[:n//2])
 
         ax.plot(xf, power, color='darkblue')

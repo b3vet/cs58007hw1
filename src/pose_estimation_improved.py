@@ -3,6 +3,7 @@ Improved Pose Estimation from Accelerometer and Gyroscope
 Fixes issues in original implementation and adds enhancements
 """
 
+import os
 import csv
 import math
 import numpy as np
@@ -335,7 +336,7 @@ def save_pose_estimation_plot(acc_path, gyro_path, output_path, alpha=0.98):
 
     # Create plot
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    activity_name = acc_path.split('/')[-2].split('-')[0].replace('_', ' ').title()
+    activity_name = os.path.basename(os.path.dirname(acc_path)).split('-')[0].replace('_', ' ').title()
     fig.suptitle(f'Pose Estimation: {activity_name}', fontsize=14, fontweight='bold')
 
     time = t - t[0]

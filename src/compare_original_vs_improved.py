@@ -8,9 +8,16 @@ import matplotlib.pyplot as plt
 from pose_estimation import complementary_filter as original_filter
 from pose_estimation_improved import complementary_filter_basic as improved_filter
 
-# Test on walking data
-acc_path = '../data/walking_hand_1-2025-10-10_14-39-10/Accelerometer.csv'
-gyro_path = '../data/walking_hand_1-2025-10-10_14-39-10/Gyroscope.csv'
+
+# Import CSV config from main.py
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from main import CSV_CONFIG
+
+# Use centralized config for walking_hand_1
+acc_path = CSV_CONFIG['activity_csvs']['walking_hand_1']['acc']
+gyro_path = CSV_CONFIG['activity_csvs']['walking_hand_1']['gyro']
 
 print("\n" + "="*70)
 print("COMPARISON: Original vs Improved Pose Estimation")

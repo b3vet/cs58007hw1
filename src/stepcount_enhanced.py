@@ -36,6 +36,45 @@ def lowpass_filter_exponential(signal, cutoff_hz, sampling_rate):
     return filtered
 
 
+def convolve_1d(signal, kernel, mode='same'):
+    """
+    Manual 1D convolution implementation (no scipy/numpy convolve)
+    
+    Args:
+        signal: Input signal array
+        kernel: Convolution kernel
+        mode: 'same' to return output of same size as signal
+    
+    Returns:
+        Convolved signal
+    """
+    n = len(signal)
+    k = len(kernel)
+    
+    if mode == 'same':
+        # Pad signal to keep same size
+        pad = k // 2
+        padded = np.pad(signal, (pad, pad), mode='edge')
+        result = np.zeros(n)
+        
+        for i in range(n):
+            result[i] = np.sum(padded[i:i+k] * kernel)
+        
+        return result
+    else:
+        # Full convolution
+        result = np.zeros(n + k - 1)
+        for i in range(len(result)):
+            start_k = max(0, k - 1 - i)
+            end_k = min(k, n + k - 1 - i)
+            start_s = max(0, i - k + 1)
+            
+            for j in range(start_k, end_k):
+                result[i] += signal[start_s + j - start_k] * kernel[j]
+        
+        return result
+
+
 def lowpass_filter_moving_average(signal, window_size):
     """
     Simple moving average low-pass filter (convolution with box kernel)
@@ -49,7 +88,7 @@ def lowpass_filter_moving_average(signal, window_size):
 
     # Convolve signal with kernel (mode='same' keeps same length)
     # Using manual convolution to avoid scipy dependency
-    filtered = np.convolve(signal, kernel, mode='same')
+    filtered = convolve_1d(signal, kernel, mode='same')
 
     return filtered
 
