@@ -24,11 +24,14 @@ python main.py
 
 # Run specific part only
 python main.py --part1   # Activity analysis
-python main.py --part2   # Step counting  
+python main.py --part2   # Step counting
 python main.py --part3   # Pose estimation
 
 # Run on specific activity
 python main.py --activity walking_hand_1
+
+# Run step counting on custom CSV file (Part 2 only)
+python main.py --filename path/to/Accelerometer.csv
 
 # Skip plot generation (faster)
 python main.py --no-plots
@@ -95,6 +98,7 @@ Save plots: False
 | `python main.py --part2` | Step counting only |
 | `python main.py --part3` | Pose estimation only |
 | `python main.py --activity walking_hand_1` | Single activity |
+| `python main.py --filename path/to/file.csv` | Step counting on custom CSV (Part 2 only) |
 | `python main.py --no-plots` | Skip visualizations |
 | `python main.py --help` | Show all options |
 

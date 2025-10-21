@@ -35,6 +35,21 @@ python main.py --part2
 python main.py --part3
 ```
 
+### Run Step Counting on Custom CSV File
+
+```bash
+# Process a specific CSV file (Part 2 only)
+python main.py --filename path/to/Accelerometer.csv
+
+# Without plots
+python main.py --filename path/to/Accelerometer.csv --no-plots
+
+# Example with existing data
+python main.py --filename data/walking_hand_1-2025-10-10_14-39-10/Accelerometer.csv
+```
+
+**Note**: The `--filename` argument automatically runs **only Part 2** (step counting) on the specified CSV file. This is useful for testing step counting on new accelerometer data without running the full analysis pipeline.
+
 ### Run on Specific Activity
 
 ```bash
@@ -83,7 +98,27 @@ python main.py --part2 --no-plots
 
 ## Example Workflows
 
-### Validate Step Counter
+### Test Step Counting on New Data
+```bash
+# Count steps from a custom CSV file (Part 2 only)
+python main.py --filename /path/to/your/walking_data.csv
+
+# Expected output:
+# - Detected steps count
+# - Cadence (steps per minute)
+# - Method breakdown (peak detection, autocorrelation, zero-crossings)
+# - Visualization saved to plots/
+
+# Quick test without generating plots
+python main.py --filename data.csv --no-plots
+```
+
+This is perfect for:
+- Testing the step counter on newly collected accelerometer data
+- Quickly validating step counts without running the full pipeline
+- Processing data from different sources (must be CSV with columns: seconds_elapsed, x, y, z)
+
+### Validate Step Counter on All Walking Activities
 ```bash
 # Quick validation without plots
 python main.py --part2 --no-plots
@@ -152,6 +187,23 @@ python main.py --help
 cd "/path/to/HW 1"
 python main.py --all
 ```
+
+### CSV File Format for --filename
+When using `--filename`, your CSV must have these columns:
+- `seconds_elapsed` - Timestamp in seconds
+- `x` - X-axis acceleration (m/s²)
+- `y` - Y-axis acceleration (m/s²)
+- `z` - Z-axis acceleration (m/s²)
+
+Example CSV format:
+```csv
+seconds_elapsed,x,y,z
+0.000,-0.123,0.456,9.789
+0.010,-0.125,0.455,9.790
+...
+```
+
+If your CSV has different column names, the script will attempt to auto-rename `x`, `y`, `z` to `accX`, `accY`, `accZ`.
 
 ## Advanced Usage
 
