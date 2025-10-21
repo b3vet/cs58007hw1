@@ -202,7 +202,17 @@ def _compute_detailed_features_simple(df, activity_name):
     # Simple peak count on lightly smoothed magnitude (box filter ~50 ms)
     win = max(3, int(max(1.0/fs, 0.05) * fs))  # ~50 ms window
     kernel = np.ones(win) / win
-    mag_smooth = np.convolve(mag, kernel, mode='same') if win > 1 else mag
+    
+    # convolution implementation
+    if win > 1:
+        mag_smooth = np.zeros(len(mag))
+        half_win = win // 2
+        for i in range(len(mag)):
+            start = max(0, i - half_win)
+            end = min(len(mag), i + half_win + 1)
+            mag_smooth[i] = np.sum(mag[start:end] * kernel[:end-start]) / np.sum(kernel[:end-start])
+    else:
+        mag_smooth = mag
 
     thr = mag_mean + 0.3 * mag_std
     peaks_bool = (mag_smooth[1:-1] > mag_smooth[:-2]) & (mag_smooth[1:-1] > mag_smooth[2:]) & (mag_smooth[1:-1] >= thr)

@@ -38,8 +38,7 @@ def lowpass_filter_exponential(signal, cutoff_hz, sampling_rate):
 
 def convolve_1d(signal, kernel, mode='same'):
     """
-    Manual 1D convolution implementation (no scipy/numpy convolve)
-    
+    1D convolution implementation   
     Args:
         signal: Input signal array
         kernel: Convolution kernel
