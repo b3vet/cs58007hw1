@@ -86,7 +86,6 @@ def lowpass_filter_moving_average(signal, window_size):
     kernel = np.ones(window_size) / window_size
 
     # Convolve signal with kernel (mode='same' keeps same length)
-    # Using manual convolution to avoid scipy dependency
     filtered = convolve_1d(signal, kernel, mode='same')
 
     return filtered
@@ -255,7 +254,6 @@ def count_steps_method2_autocorrelation(df, sampling_rate):
     # Normalize signal (zero mean, unit variance)
     mag_normalized = (mag - np.mean(mag)) / (np.std(mag) + 1e-10)
 
-    # Compute autocorrelation manually (convolution of signal with itself)
     # We only need lags from 0.3s to 2s (reasonable step period range)
     min_lag = int(0.3 * sampling_rate)  # Min 0.3s between steps
     max_lag = int(2.0 * sampling_rate)  # Max 2s between steps

@@ -105,7 +105,7 @@ print(f"  Mean: {np.mean(roll_improved):.2f}°")
 print(f"  Std:  {np.std(roll_improved):.2f}°")
 print(f"  Range: {np.max(roll_improved) - np.min(roll_improved):.2f}°")
 
-print("\n✅ These should be similar! (Original 'pitch' = Improved roll)")
+print("\nThese should be similar! (Original 'pitch' = Improved roll)")
 
 print("\n" + "-"*70)
 
@@ -119,7 +119,7 @@ print(f"  Mean: {np.mean(pitch_improved):.2f}°")
 print(f"  Std:  {np.std(pitch_improved):.2f}°")
 print(f"  Range: {np.max(pitch_improved) - np.min(pitch_improved):.2f}°")
 
-print("\n✅ These should be similar! (Original 'roll' = Improved pitch)")
+print("\nThese should be similar! (Original 'roll' = Improved pitch)")
 
 print("\n" + "="*70)
 print("CONCLUSION: Original implementation had SWAPPED pitch and roll!")
