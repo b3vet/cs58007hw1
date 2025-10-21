@@ -3,11 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Local implementations to avoid scipy dependency
 
 def find_peaks_simple(signal, height=None):
     """
-    Simple peak detection without scipy
+    Simple peak detection
     Returns indices where signal[i-1] < signal[i] > signal[i+1]
     """
     peaks = []
@@ -20,12 +19,9 @@ def find_peaks_simple(signal, height=None):
 
 def dft_manual(signal):
     """
-    Manual Discrete Fourier Transform implementation (no FFT libraries)
+    Manual Discrete Fourier Transform implementation
     
-    DFT formula: X[k] = Σ(n=0 to N-1) x[n] * e^(-2πi*k*n/N)
-    
-    Note: This is O(N²) complexity, slower than FFT's O(N log N)
-    For real-world use, FFT is preferred, but this shows the math
+    DFT formula: X[k] = Σ (n=0 to N-1) x[n] * e^(-2πi * k * n / N)
     """
     N = len(signal)
     result = np.zeros(N, dtype=complex)
@@ -48,7 +44,7 @@ def fft_numpy(signal):
 
 def fftfreq_manual(n, d=1.0):
     """
-    Manual frequency bin calculation (no numpy.fft.fftfreq)
+    Manual frequency bin calculation
     
     Returns the frequency bins for a DFT/FFT output
     f[k] = k / (n * d) for k = 0, 1, ..., n/2-1 (positive frequencies)
@@ -131,7 +127,7 @@ def compute_detailed_features(df, activity_name):
         "Total_Energy": ((df["accX"]**2 + df["accY"]**2 + df["accZ"]**2).sum()) / len(df),
     }
 
-    # Frequency domain features (detect periodicity)
+    # Frequency domain features
     try:
         sampling_rate = 1.0 / df["seconds_elapsed"].diff().mean()
         n = len(mag)
@@ -319,33 +315,5 @@ if __name__ == "__main__":
     features_csv = os.path.join(output_dir, "feature_comparison.csv")
     features_df.to_csv(features_csv, index=False)
     print(f"\n\nFull feature table saved to: {features_csv}")
-
-    print("\n" + "="*80)
-    print("KEY INSIGHTS FOR ACTIVITY CLASSIFICATION")
-    print("="*80 + "\n")
-
-    print("""
-1. MAGNITUDE-BASED FEATURES:
-   - Sitting/Standing have LOW mean magnitude (~0.17-0.23 m/s²)
-   - Walking has HIGH mean magnitude (~0.99-1.02 m/s²)
-   - Ratio: Walking is 4-6x higher than static activities
-
-2. VARIABILITY (Standard Deviation):
-   - Static activities (sitting/standing): LOW variability (~0.09-0.13 m/s²)
-   - Walking: HIGH variability (~0.45 m/s²)
-   - This reflects the periodic motion during walking
-
-3. FREQUENCY DOMAIN:
-   - Static activities: No dominant frequency (random motion)
-   - Walking: Clear dominant frequency (~1-2 Hz, corresponding to step rate)
-
-4. PERIODICITY:
-   - Walking shows clear periodic patterns visible in time-series plots
-   - Static activities show irregular, low-amplitude fluctuations
-
-5. ENERGY:
-   - Total signal energy is much higher for walking
-   - Energy ratio can distinguish dynamic vs static activities
-""")
 
     print("\n" + "="*80)

@@ -36,9 +36,9 @@ for activity in activities:
 
     try:
         save_pose_estimation_plot(acc_path, gyro_path, output_path, alpha=0.98)
-        print(f"✓ Success: {activity_name}")
+        print(f" Success: {activity_name}")
     except Exception as e:
-        print(f"✗ Error processing {activity_name}: {e}")
+        print(f"Error processing {activity_name}: {e}")
 
 print(f"\n{'='*60}")
 print("All activities processed!")

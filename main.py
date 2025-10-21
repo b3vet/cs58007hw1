@@ -148,8 +148,7 @@ def _estimate_sampling_rate_from_seconds(t_series):
 
 
 def _compute_detailed_features_simple(df, activity_name):
-    """Compute distinguishing features using only numpy/pandas (no scipy).
-
+    """Compute distinguishing features from accelerometer DataFrame.
     Returns a dict with keys similar to the original implementation.
     """
     import numpy as np
@@ -236,7 +235,6 @@ def _compute_detailed_features_simple(df, activity_name):
 
 
 def _save_text_report(output_dir, activity_name, features):
-    """Save a simple text summary instead of PNG plots (matplotlib-free path)."""
     os.makedirs(output_dir, exist_ok=True)
     out_path = os.path.join(output_dir, f"{activity_name}_detailed.txt")
     lines = [
@@ -258,7 +256,6 @@ def _save_text_report(output_dir, activity_name, features):
 def run_part1(activities=None, save_plots=True):
     """
     Part 1: Activity Classification and Feature Analysis
-
     Analyzes accelerometer data to identify distinguishing features
     between sitting, standing, and walking activities.
     """
@@ -302,7 +299,7 @@ def run_part1(activities=None, save_plots=True):
                 print(f"  Peak Count:        {features['Mag_Peaks']}")
 
             except Exception as e:
-                print(f"❌ Error processing {activity_name}: {e}")
+                print(f"Error processing {activity_name}: {e}")
                 continue
 
         # Print comparison table
@@ -319,18 +316,18 @@ def run_part1(activities=None, save_plots=True):
             # Save feature table
             output_csv = os.path.join(PLOTS_DIR2, "feature_comparison.csv")
             features_df.to_csv(output_csv, index=False)
-            print(f"\n✓ Feature table saved to: {output_csv}")
+            print(f"\nFeature table saved to: {output_csv}")
 
         print_section("PART 1 COMPLETE")
-        print("✓ Activity analysis complete")
-        print(f"✓ Processed {len(all_features)} activities")
+        print(" Activity analysis complete")
+        print(f" Processed {len(all_features)} activities")
         if save_plots:
-            print(f"✓ Plots saved to {PLOTS_DIR}/")
+            print(f" Plots saved to {PLOTS_DIR}/")
 
         return all_features
 
     except ImportError as e:
-        print(f"❌ Error importing Part 1 modules: {e}")
+        print(f"Error importing Part 1 modules: {e}")
         print("Make sure src/detailed_analysis.py exists")
         return None
 
@@ -349,7 +346,7 @@ def run_part2(activities=None, save_plots=True, csv_file=None):
     Args:
         activities: List of activity directories to process
         save_plots: Whether to save visualization plots
-        csv_file: Optional direct path to CSV file (overrides activities)
+        csv_file: Optional direct path to CSV file to process (overrides activities)
     """
     print_banner("PART 2: STEP COUNTING FROM ACCELEROMETER DATA")
 
@@ -392,14 +389,14 @@ def run_part2(activities=None, save_plots=True, csv_file=None):
                     filename_base = os.path.splitext(os.path.basename(csv_file))[0]
                     output_path = os.path.join(PLOTS_DIR, f"{filename_base}_step_analysis.png")
                     visualize_step_detection(csv_file, output_path)
-                    print(f"\n✓ Visualization saved to: {output_path}")
+                    print(f"\n Visualization saved to: {output_path}")
 
                 print_section("PART 2 COMPLETE")
-                print(f"✓ Step counting complete")
+                print(f"Step counting complete")
                 return [{'file': csv_file, 'steps': result['steps'], 'duration': result['duration_sec'], 'cadence': result['cadence_spm']}]
 
             except Exception as e:
-                print(f"❌ Error processing {csv_file}: {e}")
+                print(f"Error processing {csv_file}: {e}")
                 import traceback
                 traceback.print_exc()
                 return None
@@ -458,7 +455,7 @@ def run_part2(activities=None, save_plots=True, csv_file=None):
                     visualize_step_detection(paths['acc'], output_path)
 
             except Exception as e:
-                print(f"❌ Error processing {activity_name}: {e}")
+                print(f"Error processing {activity_name}: {e}")
                 continue
 
         # Print summary
@@ -470,14 +467,14 @@ def run_part2(activities=None, save_plots=True, csv_file=None):
                 print(f"{r['activity']:<20} {r['steps']:<10} {r['duration']:.2f}s {' '*6} {r['cadence']:.1f} steps/min")
 
         print_section("PART 2 COMPLETE")
-        print(f"✓ Step counting complete for {len(results)} walking activities")
+        print(f"Step counting complete for {len(results)} walking activities")
         if save_plots:
-            print(f"✓ Visualizations saved to {PLOTS_DIR}/")
+            print(f"Visualizations saved to {PLOTS_DIR}/")
 
         return results
 
     except ImportError as e:
-        print(f"❌ Error importing Part 2 modules: {e}")
+        print(f"Error importing Part 2 modules: {e}")
         print("Make sure src/stepcount_enhanced.py and src/visualize_steps.py exist")
         return None
 
@@ -606,7 +603,7 @@ def run_part3(activities=None, save_plots=True):
                 print(f"  Range: {result['roll_range']:7.2f}° ({np.min(roll_arr):.2f}° to {np.max(roll_arr):.2f}°)")
 
                 print(f"\nYaw (Rotation):")
-                print(f"  Drift: {result['yaw_drift']:7.2f}° (⚠️  No magnetometer - will drift)")
+                print(f"  Drift: {result['yaw_drift']:7.2f}° (  No magnetometer - will drift)")
 
                 # Generate visualization
                 if save_plots:
@@ -615,7 +612,7 @@ def run_part3(activities=None, save_plots=True):
                     save_pose_estimation_plot(paths['acc'], paths['gyro'], output_path, alpha=0.98)
 
             except Exception as e:
-                print(f"❌ Error processing {activity_name}: {e}")
+                print(f"Error processing {activity_name}: {e}")
                 import traceback
                 traceback.print_exc()
                 continue
@@ -629,14 +626,14 @@ def run_part3(activities=None, save_plots=True):
                 print(f"{r['activity']:<20} {r['pitch_std']:7.2f}° {' '*4} {r['roll_std']:7.2f}° {' '*4} {r['yaw_drift']:7.2f}°")
 
         print_section("PART 3 COMPLETE")
-        print(f"✓ Pose estimation complete for {len(results)} activities")
+        print(f" Pose estimation complete for {len(results)} activities")
         if save_plots:
-            print(f"✓ Visualizations saved to {PLOTS_DIR}/")
+            print(f" Visualizations saved to {PLOTS_DIR}/")
 
         return results
 
     except ImportError as e:
-        print(f"❌ Error importing Part 3 modules: {e}")
+        print(f"Error importing Part 3 modules: {e}")
         print("Make sure src/pose_estimation_improved.py exists")
         import traceback
         traceback.print_exc()
@@ -695,7 +692,7 @@ Examples:
     if args.filename:
         # Validate file exists
         if not os.path.exists(args.filename):
-            print(f"❌ Error: File not found: {args.filename}")
+            print(f"Error: File not found: {args.filename}")
             sys.exit(1)
 
         # Print header
@@ -711,16 +708,16 @@ Examples:
 
             # Final summary
             print_banner("TASK COMPLETE", char='=', width=80)
-            print("✓ Step counting completed successfully")
+            print(" Step counting completed successfully")
             if save_plots:
-                print(f"✓ Results saved to: {PLOTS_DIR}/")
+                print(f" Results saved to: {PLOTS_DIR}/")
             print("\n")
 
         except KeyboardInterrupt:
-            print("\n\n⚠️  Interrupted by user")
+            print("\n\n  Interrupted by user")
             sys.exit(1)
         except Exception as e:
-            print(f"\n❌ Fatal error: {e}")
+            print(f"\nFatal error: {e}")
             import traceback
             traceback.print_exc()
             sys.exit(1)
@@ -740,7 +737,7 @@ Examples:
         # Find matching activity
         matching = [a for a in ACTIVITIES if args.activity in a]
         if not matching:
-            print(f"❌ Activity '{args.activity}' not found!")
+            print(f"Activity '{args.activity}' not found!")
             print(f"Available activities:")
             for a in ACTIVITIES:
                 print(f"  - {a.split('-')[0]}")
@@ -777,8 +774,8 @@ Examples:
 
         # Final summary
         print_banner("ALL TASKS COMPLETE", char='=', width=80)
-        print("✓ All requested parts have been executed successfully")
-        print(f"✓ Results saved to: {PLOTS_DIR}/")
+        print(" All requested parts have been executed successfully")
+        print(f" Results saved to: {PLOTS_DIR}/")
         print("\nFor detailed documentation, see:")
         print("  - docs/ACTIVITY_ANALYSIS.md")
         print("  - docs/STEP_COUNTING_EXPLANATION.md")
@@ -786,10 +783,10 @@ Examples:
         print("\n")
 
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
+        print("\n\n  Interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Fatal error: {e}")
+        print(f"\nFatal error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
