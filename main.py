@@ -52,11 +52,12 @@ This script orchestrates all three parts:
   Part 3: Pose Estimation from Accelerometer and Gyroscope
 
 Usage:
-  python main.py --all                    # Run all parts on all activities
+  python main.py                          # Run all parts on all activities
   python main.py --part1                  # Run only activity analysis
   python main.py --part2                  # Run only step counting
   python main.py --part3                  # Run only pose estimation
   python main.py --activity walking_hand_1  # Run all parts on specific activity
+  python main.py --filename path/to/file.csv  # Run step counting on specific CSV file
 """
 
 import sys
@@ -338,12 +339,17 @@ def run_part1(activities=None, save_plots=True):
 # PART 2: STEP COUNTING
 # ============================================================================
 
-def run_part2(activities=None, save_plots=True):
+def run_part2(activities=None, save_plots=True, csv_file=None):
     """
     Part 2: Step Counting from Accelerometer Data
 
     Counts steps using multiple methods: peak detection, autocorrelation,
     and zero crossings.
+
+    Args:
+        activities: List of activity directories to process
+        save_plots: Whether to save visualization plots
+        csv_file: Optional direct path to CSV file (overrides activities)
     """
     print_banner("PART 2: STEP COUNTING FROM ACCELEROMETER DATA")
 
@@ -353,6 +359,52 @@ def run_part2(activities=None, save_plots=True):
         from stepcount_enhanced import count_steps_from_csv
         from visualize_steps import visualize_step_detection
 
+        # If csv_file is provided, process only that file
+        if csv_file:
+            print_section(f"Step Counting: {os.path.basename(csv_file)}")
+
+            try:
+                # Count steps using combined method
+                result = count_steps_from_csv(
+                    csv_file,
+                    method='combined',
+                    verbose=False
+                )
+
+                # Print results
+                print(f"Sampling rate:     {result['sampling_rate']:.2f} Hz")
+                print(f"Duration:          {result['duration_sec']:.2f} seconds")
+                print(f"Detected steps:    {result['steps']}")
+                print(f"Cadence:           {result['cadence_spm']:.1f} steps/minute")
+
+                # Method breakdown
+                if 'details' in result:
+                    details = result['details']
+                    print(f"\nMethod Breakdown:")
+                    print(f"  Peak Detection:    {details.get('method1_steps', 'N/A')} steps")
+                    print(f"  Autocorrelation:   {details.get('method2_steps', 'N/A')} steps")
+                    print(f"  Zero Crossings:    {details.get('method3_steps', 'N/A')} steps")
+                    print(f"  Combined (Median): {result['steps']} steps")
+
+                # Generate visualization
+                if save_plots:
+                    os.makedirs(PLOTS_DIR, exist_ok=True)
+                    filename_base = os.path.splitext(os.path.basename(csv_file))[0]
+                    output_path = os.path.join(PLOTS_DIR, f"{filename_base}_step_analysis.png")
+                    visualize_step_detection(csv_file, output_path)
+                    print(f"\n✓ Visualization saved to: {output_path}")
+
+                print_section("PART 2 COMPLETE")
+                print(f"✓ Step counting complete")
+                return [{'file': csv_file, 'steps': result['steps'], 'duration': result['duration_sec'], 'cadence': result['cadence_spm']}]
+
+            except Exception as e:
+                print(f"❌ Error processing {csv_file}: {e}")
+                import traceback
+                traceback.print_exc()
+                return None
+
+        # Otherwise, process activities as before
         if activities is None:
             # Only run on walking activities for step counting
             activities = [a for a in ACTIVITIES if 'walking' in a.lower()]
@@ -608,6 +660,7 @@ Examples:
   python main.py --part2                  # Run only Part 2
   python main.py --part3                  # Run only Part 3
   python main.py --activity walking_hand_1  # Run all parts on specific activity
+  python main.py --filename path/to/Accelerometer.csv  # Run Part 2 on specific CSV file
   python main.py --part2 --no-plots       # Run Part 2 without saving plots
         """
     )
@@ -626,12 +679,55 @@ Examples:
     parser.add_argument('--activity', type=str,
                        help='Run on specific activity (e.g., walking_hand_1)')
 
+    # File-specific processing
+    parser.add_argument('--filename', type=str,
+                       help='Path to CSV file for step counting (runs Part 2 only)')
+
     # Options
     parser.add_argument('--no-plots', action='store_true',
                        help='Do not save plots')
 
     args = parser.parse_args()
 
+    save_plots = not args.no_plots
+
+    # Handle --filename option (runs Part 2 only)
+    if args.filename:
+        # Validate file exists
+        if not os.path.exists(args.filename):
+            print(f"❌ Error: File not found: {args.filename}")
+            sys.exit(1)
+
+        # Print header
+        print_banner("HUMAN ACTIVITY RECOGNITION & POSE ESTIMATION", char='=', width=80)
+        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Mode: Step counting on single file")
+        print(f"File: {args.filename}")
+        print(f"Save plots: {save_plots}")
+
+        # Run Part 2 with the specified file
+        try:
+            result_p2 = run_part2(csv_file=args.filename, save_plots=save_plots)
+
+            # Final summary
+            print_banner("TASK COMPLETE", char='=', width=80)
+            print("✓ Step counting completed successfully")
+            if save_plots:
+                print(f"✓ Results saved to: {PLOTS_DIR}/")
+            print("\n")
+
+        except KeyboardInterrupt:
+            print("\n\n⚠️  Interrupted by user")
+            sys.exit(1)
+        except Exception as e:
+            print(f"\n❌ Fatal error: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+        return
+
+    # Normal operation (no --filename)
     # Determine which parts to run
     # If no specific part is selected, run all parts by default
     run_all = args.all or not (args.part1 or args.part2 or args.part3)
@@ -652,8 +748,6 @@ Examples:
         activities = matching
     else:
         activities = ACTIVITIES
-
-    save_plots = not args.no_plots
 
     # Print header
     print_banner("HUMAN ACTIVITY RECOGNITION & POSE ESTIMATION", char='=', width=80)
